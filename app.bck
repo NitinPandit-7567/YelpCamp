@@ -1,0 +1,155 @@
+const express = require('express');
+const app = express();
+
+const path = require('path')
+
+//MongoDB:
+const mongoose = require('mongoose')
+mongoose.connect('mongodb://127.0.0.1:27017/YelpCamp')
+    .then(() => console.log('Connected to Mongo DB!!'))
+    .catch((err) => { console.log('Error! Could not connect to Mongo DB! :(', err) })
+const campGround = require('./models/campground')
+const Review = require('./models/review')
+
+//Method Override:
+const methodOverride = require('method-override');
+app.use(methodOverride('_method'));
+
+//Router
+const campgroundsRouter = require(./routes/campgrounds)
+
+//EJS:
+app.set('view engine', 'ejs')
+app.set('views', path.join(__dirname, 'views'))
+
+//EJS MATE:
+const ejsMate = require('ejs-mate')
+app.engine('ejs', ejsMate)
+
+
+//Form Data:
+app.use(express.urlencoded({ extended: true }))
+
+
+//Async Error handler:
+const wrapAsync = require('./utils/catchAsync');
+
+//Express Errors:
+const AppError = require('./utils/AppError')
+
+//JOI:
+// const Joi = require('joi')
+const { campgroundSchema } = require('./schemas.js')
+const { reviewSchema } = require('./schemas')
+
+const validateCampground = (req, res, next) => {
+    const { error } = campgroundSchema.validate(req.body);
+    if (error) {
+        const msg = error.details.map(el => el.message).join(',')
+        throw new AppError(400, msg)
+    }
+    else {
+        next();
+    }
+}
+
+const validateReview = (req, res, next) => {
+    const { error } = reviewSchema.validate(req.body);
+    if (error) {
+        const msg = error.details.map(el => el.message).join(',')
+        throw new AppError(400, msg)
+    }
+    else {
+        next();
+    }
+}
+
+app.get('/', (req, res) => {
+
+    res.render('home')
+})
+
+app.get('/campgrounds', wrapAsync(async (req, res) => {
+    const allCG = await campGround.find({});
+    console.log(allCG);
+    res.render('campgrounds/index', { allCG });
+}))
+app.post('/campgrounds', validateCampground, wrapAsync(async (req, res) => {
+    // res.send(req.body)
+    // const { title, price, description, location } = req.body;
+    // const cg = new campGround({
+    //     title: title,
+    //     price: price,
+    //     description: description,
+    //     location: location
+    // })
+    // if (!req.campGround) {
+    //     throw new AppError(400, 'INVALID DATA')
+    // }
+    const cg = new campGround(req.body.campground)
+    console.log(cg.id)
+    await cg.save()
+    res.redirect(`/campgrounds/${cg._id}`)
+}))
+
+app.post('/campgrounds/:id/reviews', validateReview, wrapAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const cg = await campGround.findById(id);
+    const { rating, body } = req.body.review;
+    const review = new Review({ body, rating })
+    cg.reviews.push(review);
+    review.save();
+    cg.save();
+    res.redirect(`/campgrounds/${id}`)
+}))
+app.get('/campgrounds/new', (req, res) => {
+    res.render('campgrounds/new')
+})
+
+app.get('/campgrounds/:id/edit', wrapAsync(async (req, res, next) => {
+    const cg = await campGround.findById(req.params.id);
+    res.render('campgrounds/edit', { cg });
+}))
+
+app.put('/campgrounds/:id', validateCampground, wrapAsync(async (req, res, next) => {
+    // const { title, price, description, location } = req.body.campground;
+    const { id } = req.params;
+    const cg = await campGround.findByIdAndUpdate(id, req.body.campground, { runValidators: true, new: true });
+    // console.log("Updated Campground: \n", cg)
+    res.redirect(`/campgrounds/${cg._id}`);
+}))
+
+app.delete('/campgrounds/:id', wrapAsync(async (req, res, next) => {
+    const { id } = req.params;
+    await campGround.findByIdAndDelete(id);
+    res.redirect('/campgrounds');
+}))
+
+app.delete('/campgrounds/:c_id/review/:r_id', wrapAsync(async (req, res, next) => {
+    const { c_id, r_id } = req.params;
+    await campGround.findByIdAndUpdate(c_id, { $pull: { reviews: r_id } })
+    await Review.findByIdAndDelete(r_id);
+    res.redirect(`/campgrounds/${c_id}`);
+
+}))
+app.get('/campgrounds/:id', wrapAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const cg = await campGround.findById(id).populate('reviews');
+    res.render('campgrounds/show', { cg });
+}))
+app.all('*', (req, res, next) => {
+    next(new AppError(404, 'ERROR 404 : PAGE NOT FOUND'))
+})
+
+
+app.use((err, req, res, next) => {
+    console.dir(err)
+    if (err.name === 'TypeError') {
+        res.message = `Please enter the correct value for the field ${err.path}`
+    }
+    const { status = 500, message = 'UH-OH SOMETHING WENT WRONG! :(' } = err;
+    res.status(status).render('error', { status: status, message: message, stack: err.stack });
+})
+app.listen(3000, () => {
+    console.log('ON PORT 3000....')
+})

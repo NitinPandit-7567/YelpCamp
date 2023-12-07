@@ -1,0 +1,89 @@
+<%layout ('layout/boilerplate')%>
+    <!-- <a href="/campgrounds">Back</a>
+    <form action="/campgrounds/<%=cg.id%>?_method=DELETE" method="POST">
+        <button>Delete</button>
+    </form>
+    <h1>Editing <%=cg.title%>
+    </h1>
+    <form action="/campgrounds/<%=cg._id%>?_method=PUT" method="POST">
+        <div>
+            <label for="title">Title: </label>
+            <input type="text" name="campground[title]" id="title" value="<%=cg.title%>">
+            <br>
+        </div>
+        <div>
+            <label for="price">Price: </label>
+            <input type="number" step="0.01" name="campground[price]" id="price" value="<%=cg.price%>">
+        </div>
+        <div>
+            <label for="location">Location: </label>
+            <input type="text" name="campground[location]" id="location" value="<%=cg.location%>">
+        </div>
+        <div></div>
+        <label for="description">Description:</label><br>
+        <textarea row="30" cols="50" name="campground[description]" id="description"
+            value="<%=cg.description%>"></textarea>
+        </div>
+        <div>
+            <button>Update Campground</button>
+        </div>
+    </form> -->
+    <div class="row">
+        <h1 class="text-center">Edit <%=cg.title%>
+        </h1>
+        <div class="col-6 offset-3">
+            <form action="/campgrounds/<%=cg._id%>?_method=PUT" method="POST" novalidate class="validatedForm"
+                enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class='form-label' for="title">Title: </label>
+                    <input class='form-control' type="text" name="campground[title]" id="title" value="<%=cg.title%>"
+                        required>
+                    <div class="valid-feedback">Looks Good!</div>
+                </div>
+                <div class="mb-3">
+                    <label class='form-label' for="price">Price: </label>
+                    <div class="input-group">
+                        <input class='form-control' type="number" step="0.01" name="campground[price]" id="price"
+                            value="<%=cg.price%>" required>
+                        <span class="input-group-text">$</span>
+                        <div class="valid-feedback">Looks Good!</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class='form-label' for="location">Location: </label>
+                    <input class='form-control' type="text" name="campground[location]" id="location"
+                        value="<%=cg.location%>" required>
+                    <div class="valid-feedback">Looks Good!</div>
+                </div>
+                <div class="mb-3">
+                    <!-- <label for="image" class="form-label">Image URL:</label>
+                    <input type="text" class="form-control" value="<%=cg.image%>" id="image" name='campground[image]'
+                        required> -->
+                    <label for="image" class="form-label">Upload more Images:</label>
+                    <input type="file" class="form-control" id="image" name='image' multiple>
+                    <div class="valid-feedback">Looks Good!</div>
+                </div>
+                <div class="mb-3">
+                    <% cg.images.forEach(function(img,i){%>
+                        <!-- <img src="<=(img.path.split('upload'))[0]+'upload/'+'w_300'+(img.path.split('upload'))[1]>"
+                            alt="img.file" class="img-thumbnail"> -->
+                        <img src="<%=img.thumbnail%>" alt="img.file" class="img-thumbnail">
+                        <div class="form-check-inline">
+                            <input type="checkbox" id="image-<%=i %>" name="deleteImages[]" value="<%= img.file %>">
+                        </div>
+                        <label for="image-<%=i %>">Delete ?</label>
+                        <%}) %>
+                </div>
+                <div class="mb-3">
+                    <label class='form-label' for="description">Description:</label><br>
+                    <textarea class='form-control' row="30" cols="50" name="campground[description]" id="description"
+                        required><%=cg.description%></textarea>
+                    </textarea>
+                    <div class="valid-feedback">Looks Good!</div>
+                </div>
+        </div>
+        <div class="mb-3">
+            <button class="btn btn-success">Update Campground</button>
+        </div>
+        </form>
+    </div>
